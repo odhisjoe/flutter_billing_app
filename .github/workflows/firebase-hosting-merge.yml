@@ -24,8 +24,36 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Decode keystore
+        if: ${{ secrets.KEYSTORE != '' }}
+        run: echo "${{ secrets.KEYSTORE }}" | base64 --decode > android/app/upload-keystore.jks
+
+      - name: Create key.properties
+        if: ${{ secrets.KEYSTORE != '' }}
+        run: |
+          echo "storeFile=../app/upload-keystore.jks" > android/key.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
+          echo "storePassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+
+      - name: Build Android APK
+        run: flutter build apk --release
+
       - name: Build Web
         run: flutter build web --release
+
+      - name: Rename APK for release
+        run: cp build/app/outputs/flutter-apk/app-release.apk pos-mashinani.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Release v${{ github.run_number }}
+          body: |
+            Auto-built APK from commit ${{ github.sha }}
+          files: pos-mashinani.apk
+          generate_release_notes: true
 
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:

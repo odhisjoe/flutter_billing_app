@@ -4,7 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 class DownloadApkPage extends StatelessWidget {
   const DownloadApkPage({super.key});
 
-  static const String apkUrl = 'https://files.catbox.moe/vbxi5a.apk';
+  static const String apkUrl = 'https://github.com/odhisjoe/flutter_billing_app/releases/latest/download/pos-mashinani.apk';
   static const String versionName = 'v1.0.0';
 
   @override
