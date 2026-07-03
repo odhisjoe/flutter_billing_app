@@ -1,8 +1,8 @@
-name: Deploy to Firebase
+name: Deploy to Firebase Production
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -12,15 +12,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: subosito/flutter-action@v2
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
+      - name: Install dependencies
+        run: flutter pub get
+
       - name: Decode keystore
         if: ${{ secrets.KEYSTORE != '' }}
-        run: |
-          echo "${{ secrets.KEYSTORE }}" | base64 -d > android/app/upload-keystore.jks
+        run: echo "${{ secrets.KEYSTORE }}" | base64 -d > android/app/upload-keystore.jks
 
       - name: Create key.properties
         if: ${{ secrets.KEYSTORE != '' }}
@@ -36,11 +45,10 @@ jobs:
       - name: Build Web
         run: flutter build web --release
 
-      - name: Copy APK to web assets
+      - name: Copy APK to web assets (for download page)
         run: cp build/app/outputs/flutter-apk/app-release.apk build/web/pos-mashinani.apk
 
-      - name: Deploy to Firebase Hosting
-        run: |
-          npx -y firebase-tools deploy --only hosting --project tikach-pos
+      - name: Deploy to Firebase Hosting (web + apk)
+        run: npx -y firebase-tools deploy --only hosting --project tikach-pos
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
