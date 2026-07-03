@@ -42,7 +42,7 @@ dependencies:
   dio: ^5.4.0
   
   # Background Sync
-  workmanager: ^0.9.0+3
+  workmanager: ^0.7.0
   
   # UI & Utilities
   google_fonts: ^6.1.0
