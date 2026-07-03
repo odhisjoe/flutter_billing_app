@@ -53,9 +53,7 @@ android {
 
     buildTypes {
         release {
-            if (keystoreProperties.isNotEmpty()) {
-                signingConfig = signingConfigs.getByName("release")
-            }
+            signingConfig = if (keystoreProperties.isNotEmpty()) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
         }
     }
 }
