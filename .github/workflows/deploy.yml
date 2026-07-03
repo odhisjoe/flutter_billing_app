@@ -1,8 +1,6 @@
 name: Deploy to Firebase Production
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -45,10 +43,12 @@ jobs:
       - name: Build Web
         run: flutter build web --release
 
-      - name: Copy APK to web assets (for download page)
+      - name: Copy APK to web assets
         run: cp build/app/outputs/flutter-apk/app-release.apk build/web/pos-mashinani.apk
 
-      - name: Deploy to Firebase Hosting (web + apk)
-        run: npx -y firebase-tools deploy --only hosting --project tikach-pos
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TIKACH_POS }}
+          channelId: live
+          projectId: tikach-pos
