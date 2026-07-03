@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1053407529306",
+    "project_id": "tikach-pos",
+    "storage_bucket": "tikach-pos.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1053407529306:android:5ec7835abc91ad8fd5cb63",
+        "android_client_info": {
+          "package_name": "com.posmashinani.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB27xbWJDELi-GLRgLUPHlTx7f0TD3H1Zg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

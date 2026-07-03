@@ -1,0 +1,46 @@
+name: Deploy to Firebase
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Decode keystore
+        if: ${{ secrets.KEYSTORE != '' }}
+        run: |
+          echo "${{ secrets.KEYSTORE }}" | base64 -d > android/app/upload-keystore.jks
+
+      - name: Create key.properties
+        if: ${{ secrets.KEYSTORE != '' }}
+        run: |
+          echo "storeFile=../app/upload-keystore.jks" > android/key.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
+          echo "storePassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+
+      - name: Build Android APK
+        run: flutter build apk --release
+
+      - name: Build Web
+        run: flutter build web --release
+
+      - name: Copy APK to web assets
+        run: cp build/app/outputs/flutter-apk/app-release.apk build/web/pos-mashinani.apk
+
+      - name: Deploy to Firebase Hosting
+        run: |
+          npx -y firebase-tools deploy --only hosting --project tikach-pos
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}

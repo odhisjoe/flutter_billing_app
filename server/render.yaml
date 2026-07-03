@@ -1,0 +1,45 @@
+# Render deployment config for POS M-Pesa Proxy
+# Deploy as a Web Service on Render (https://render.com)
+# 
+# Steps:
+# 1. Push server/ directory to a Git repo
+# 2. In Render dashboard: New + Web Service
+# 3. Connect repo, set:
+#    - Root Directory: server
+#    - Build Command: npm install
+#    - Start Command: npm start
+# 4. Add environment variables (see below)
+# 5. Deploy
+
+services:
+  - type: web
+    name: pos-mpesa-proxy
+    env: node
+    region: frankfurt
+    plan: free
+    buildCommand: npm install
+    startCommand: node index.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: MPESA_ENV
+        value: sandbox
+        # Change to "production" for live M-Pesa
+      - key: MPESA_CONSUMER_KEY
+        sync: false
+        # Set via Render dashboard
+      - key: MPESA_CONSUMER_SECRET
+        sync: false
+        # Set via Render dashboard
+      - key: MPESA_PASSKEY
+        sync: false
+        # Set via Render dashboard
+      - key: MPESA_SHORTCODE
+        sync: false
+        # For sandbox: 174379
+      - key: SERVER_URL
+        sync: false
+        # Your Render URL: https://your-app.onrender.com

@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Super admin has full access to their own path
+    match /super-admins/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Tenants: admin + their cashiers can read/write their own tenant data
+    match /tenants/{tenantId}/{document=**} {
+      // Allow read if the user is linked to this tenant
+      allow read: if request.auth != null && (
+        // Admin owns this tenant
+        exists(/databases/$(database)/documents/tenants/$(tenantId)/admins/$(request.auth.uid))
+        // Cashier belongs to this tenant
+        || exists(/databases/$(database)/documents/tenants/$(tenantId)/cashiers/$(request.auth.uid))
+      );
+      // Allow write for admins who own this tenant
+      allow write: if request.auth != null && (
+        exists(/databases/$(database)/documents/tenants/$(tenantId)/admins/$(request.auth.uid))
+      );
+    }
+
+    // Tenant info doc: readable by linked users, writable only by owner admin
+    match /tenants/{tenantId} {
+      allow read: if request.auth != null && (
+        exists(/databases/$(database)/documents/tenants/$(tenantId)/admins/$(request.auth.uid))
+        || exists(/databases/$(database)/documents/tenants/$(tenantId)/cashiers/$(request.auth.uid))
+      );
+      allow write: if request.auth != null && resource.data.ownerAdminUid == request.auth.uid;
+    }
+
+    // Tenant admin subcollection: admin can manage their own record
+    match /tenants/{tenantId}/admins/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Tenant cashier subcollection: admin can CRUD, cashier can read own
+    match /tenants/{tenantId}/cashiers/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if request.auth != null &&
+        exists(/databases/$(database)/documents/tenants/$(tenantId)/admins/$(request.auth.uid));
+    }
+  }
+}

@@ -1,0 +1,45 @@
+# Flutter
+.dart_tool/
+.pub-cache/
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+
+# Android
+android/.gradle/
+android/.kotlin/
+android/app/build/
+android/local.properties
+android/key.properties
+
+# iOS
+ios/Flutter/.last_build_id
+ios/Pods/
+ios/.symlinks/
+
+# macOS
+macos/Flutter/ephemeral/
+macos/Pods/
+
+# IDE
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+
+# Node.js
+node_modules/
+
+# Logs & dumps
+*.log
+*.hprof
+*.snap
+
+# Nested duplicate
+flutter_billing_app-main/
+
+# APK
+*.apk
