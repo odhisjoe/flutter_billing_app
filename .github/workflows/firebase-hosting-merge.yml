@@ -32,12 +32,10 @@ jobs:
         run: |
           if [ -n "$KEYSTORE" ]; then
             echo "$KEYSTORE" | base64 -d > android/app/upload-keystore.jks
-            cat > android/key.properties <<EOF
-storePassword=${KEY_PASSWORD}
-keyPassword=${KEY_PASSWORD}
-keyAlias=${KEY_ALIAS}
-storeFile=../app/upload-keystore.jks
-EOF
+            echo "storePassword=${KEY_PASSWORD}" > android/key.properties
+            echo "keyPassword=${KEY_PASSWORD}" >> android/key.properties
+            echo "keyAlias=${KEY_ALIAS}" >> android/key.properties
+            echo "storeFile=../app/upload-keystore.jks" >> android/key.properties
           fi
 
       - name: Build Android APK
