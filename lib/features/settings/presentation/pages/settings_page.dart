@@ -235,14 +235,26 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                         onTap: () => context.push('/settings/firebase-link'),
                       ),
-                      if (isLinked)
-                        _buildListItem(
-                          icon: Icons.link,
-                          title: 'Link Devices',
-                          subtitle: 'Generate QR code to link new devices',
-                          trailingWidget: Icon(Icons.chevron_right, color: Colors.grey[400], size: 20),
-                          onTap: () => context.push('/admin/link-device'),
-                        ),
+                      _buildListItem(
+                        icon: Icons.link,
+                        title: 'Link Devices',
+                        subtitle: isLinked
+                            ? 'Generate QR code to link new devices'
+                            : 'Connect Firebase first to enable device linking',
+                        trailingWidget: Icon(Icons.chevron_right, color: Colors.grey[400], size: 20),
+                        onTap: () {
+                          if (isLinked) {
+                            context.push('/admin/link-device');
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Please connect Firebase Account first under Cloud Sync'),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                        },
+                      ),
                       if (syncStatus == SyncStatus.syncing)
                         Padding(
                           padding: const EdgeInsets.symmetric(
