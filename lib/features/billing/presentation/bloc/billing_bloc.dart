@@ -114,7 +114,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
           try {
             final map = jsonDecode(savedDeviceRaw) as Map<String, dynamic>;
             final typeIndex = map['driverType'] as int? ?? 0;
-            final safeTypes = PrinterDriverType.values;
+            const safeTypes = PrinterDriverType.values;
             final device = PrinterDevice(
               name: map['name'] as String? ?? '',
               address: map['address'] as String? ?? '',

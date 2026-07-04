@@ -419,10 +419,10 @@ class _EditProductPageState extends State<EditProductPage> {
                   const SizedBox(height: 24),
                   const InputLabel(text: 'Assigned To'),
                   DropdownButtonFormField<String?>(
-                    value: _assignedTo,
+                    initialValue: _assignedTo,
                     decoration: const InputDecoration(hintText: 'Unassigned'),
                     items: [
-                      DropdownMenuItem(value: null, child: Text('Unassigned', style: TextStyle(fontSize: 14))),
+                      const DropdownMenuItem(value: null, child: Text('Unassigned', style: TextStyle(fontSize: 14))),
                       ...HiveDatabase.usersBox.values.where((u) => u.isActive).map((u) => DropdownMenuItem(
                         value: u.id,
                         child: Text(u.name, style: const TextStyle(fontSize: 14)),

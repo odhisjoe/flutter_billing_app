@@ -8,6 +8,8 @@ import '../../features/auth/presentation/pages/operations_pin_page.dart';
 import '../../features/auth/presentation/pages/pin_login_page.dart';
 import '../../features/auth/presentation/pages/set_pin_page.dart';
 import '../../features/auth/presentation/pages/firebase_link_page.dart';
+import '../../features/auth/presentation/pages/link_to_shop_page.dart';
+import '../../features/admin/presentation/pages/link_device_page.dart';
 import '../../features/employees/presentation/pages/employee_management_page.dart';
 import '../../features/billing/presentation/pages/home_page.dart';
 import '../../features/product/presentation/pages/product_list_page.dart';
@@ -61,7 +63,7 @@ final router = GoRouter(
     final isLoginPage = location == '/login';
 
     if (!loggedIn && !isLoginPage) {
-      final isPublicRoute = location == '/super-admin' || location == '/operations-pin' || location == '/download' || location == '/download-windows';
+      final isPublicRoute = location == '/super-admin' || location == '/operations-pin' || location == '/download' || location == '/download-windows' || location == '/link-to-shop';
       if (!isPublicRoute) return '/login';
     }
     if (loggedIn && isLoginPage) {
@@ -95,6 +97,10 @@ final router = GoRouter(
       builder: (context, state) => const PinLoginPage(),
     ),
     GoRoute(
+      path: '/link-to-shop',
+      builder: (context, state) => const LinkToShopPage(),
+    ),
+    GoRoute(
       path: '/',
       builder: (context, state) => const HomePage(),
       routes: [
@@ -109,6 +115,12 @@ final router = GoRouter(
     GoRoute(
       path: '/admin',
       builder: (context, state) => const AdminDashboardPage(),
+      routes: [
+        GoRoute(
+          path: 'link-device',
+          builder: (context, state) => const LinkDevicePage(),
+        ),
+      ],
     ),
     GoRoute(
       path: '/set-pin',

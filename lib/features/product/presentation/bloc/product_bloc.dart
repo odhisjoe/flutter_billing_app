@@ -48,7 +48,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         emit(state.copyWith(
             status: ProductStatus.success,
             message: 'Product added successfully'));
-        add(LoadProducts());
+        add(const LoadProducts());
       },
     );
   }
@@ -64,7 +64,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         emit(state.copyWith(
             status: ProductStatus.success,
             message: 'Product updated successfully'));
-        add(LoadProducts());
+        add(const LoadProducts());
       },
     );
   }
@@ -80,7 +80,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         emit(state.copyWith(
             status: ProductStatus.success,
             message: 'Product deleted successfully'));
-        add(LoadProducts());
+        add(const LoadProducts());
       },
     );
   }

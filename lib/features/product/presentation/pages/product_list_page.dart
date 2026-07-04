@@ -168,6 +168,7 @@ class _ProductListPageState extends State<ProductListPage> {
 
     int added = 0, skipped = 0;
     final errors = <String>[];
+    if (!mounted) return;
     final existingBarcodes =
         context.read<ProductBloc>().state.products.map((p) => p.barcode).toSet();
 
@@ -214,6 +215,7 @@ class _ProductListPageState extends State<ProductListPage> {
               : null,
         );
 
+        if (!mounted) return;
         context.read<ProductBloc>().add(AddProduct(product));
         added++;
       } catch (e) {
@@ -572,7 +574,7 @@ class _ProductListPageState extends State<ProductListPage> {
                                 icon: const Icon(Icons.upload_file, size: 18),
                                 label: const Text('Import CSV'),
                                 style: OutlinedButton.styleFrom(
-                                  side: BorderSide(color: AppTheme.primaryColor),
+                                  side: const BorderSide(color: AppTheme.primaryColor),
                                   foregroundColor: AppTheme.primaryColor,
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -634,7 +636,7 @@ class _ProductListPageState extends State<ProductListPage> {
                                       icon: const Icon(Icons.upload_file, size: 18),
                                       label: const Text('Import'),
                                       style: OutlinedButton.styleFrom(
-                                        side: BorderSide(color: AppTheme.primaryColor),
+                                        side: const BorderSide(color: AppTheme.primaryColor),
                                         foregroundColor: AppTheme.primaryColor,
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),

@@ -215,7 +215,7 @@ class _PaymentModalBodyState extends State<_PaymentModalBody> {
               child: _selectedCustomer != null
                   ? Row(
                       children: [
-                        Icon(Icons.person, size: 14, color: AppTheme.primaryColor),
+                        const Icon(Icons.person, size: 14, color: AppTheme.primaryColor),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text('${_selectedCustomer!.name} | ${_selectedCustomer!.loyaltyPoints} pts',
@@ -244,7 +244,7 @@ class _PaymentModalBodyState extends State<_PaymentModalBody> {
                         ),
                         GestureDetector(
                           onTap: _searchCustomer,
-                          child: Icon(Icons.search, size: 14, color: AppTheme.primaryColor),
+                          child: const Icon(Icons.search, size: 14, color: AppTheme.primaryColor),
                         ),
                       ],
                     ),

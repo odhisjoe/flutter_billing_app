@@ -98,7 +98,7 @@ class MyApp extends StatelessWidget {
           create: (context) => di.sl<AuthBloc>()..add(CheckAuthEvent()),
         ),
         BlocProvider<ProductBloc>(
-            create: (context) => di.sl<ProductBloc>()..add(LoadProducts())),
+            create: (context) => di.sl<ProductBloc>()..add(const LoadProducts())),
         BlocProvider<ShopBloc>(
             create: (context) => di.sl<ShopBloc>()..add(LoadShopEvent())),
         BlocProvider<BillingBloc>(

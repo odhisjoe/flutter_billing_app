@@ -896,7 +896,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
 
     List<PieChartSectionData> paymentSections(double c, double m, double cd, double b, double t) {
       if (t == 0) return [];
-      final style = TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white);
+      const style = TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white);
       final result = <PieChartSectionData>[];
       if (c > 0) result.add(PieChartSectionData(value: c, color: Colors.green, title: '${(c / t * 100).toStringAsFixed(0)}%', titleStyle: style, radius: 36));
       if (m > 0) result.add(PieChartSectionData(value: m, color: Colors.cyan, title: '${(m / t * 100).toStringAsFixed(0)}%', titleStyle: style, radius: 36));
@@ -997,7 +997,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                         borderData: FlBorderData(show: false),
                         barTouchData: BarTouchData(
                           touchTooltipData: BarTouchTooltipData(
-                            getTooltipItem: (g, i, r, j) => BarTooltipItem('${top5[g.x].value} pcs', TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w500)),
+                            getTooltipItem: (g, i, r, j) => BarTooltipItem('${top5[g.x].value} pcs', const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w500)),
                           ),
                         ),
                       ),
@@ -1135,7 +1135,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                         children: [
                           Text(e.$1, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
                           const Spacer(),
-                          Text('KSh ${f2.format(e.$2)}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
+                          Text('KSh ${f2.format(e.$2)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
                         ],
                       ),
                       const SizedBox(height: 2),
@@ -1846,7 +1846,7 @@ class _RevenueChartState extends State<_RevenueChart> {
                       getTooltipItem: (group, groupIndex, rod, rodIndex) {
                         return BarTooltipItem(
                           '${dayLabels[group.x.toInt()]}\nKSh ${currency.format(rod.toY)}',
-                          TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+                          const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
                         );
                       },
                     ),
@@ -2191,15 +2191,15 @@ class _InventoryTable extends StatelessWidget {
                 dataRowMaxHeight: 36,
                 columnSpacing: 20,
                 headingRowColor: WidgetStatePropertyAll(Colors.grey[50]),
-                columns: [
-                  const DataColumn(label: Text('#', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                  const DataColumn(label: Text('Product', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                  const DataColumn(label: Text('Category', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                  const DataColumn(label: Text('Stock', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                  const DataColumn(label: Text('Min', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                  const DataColumn(label: Text('Buying', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                  const DataColumn(label: Text('Selling', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                  const DataColumn(label: Text('Status', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                columns: const [
+                  DataColumn(label: Text('#', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('Product', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('Category', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('Stock', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('Min', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('Buying', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('Selling', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('Status', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
                   DataColumn(label: Text('Assigned', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
                 ],
                 rows: products.asMap().entries.map((entry) {
@@ -2332,7 +2332,7 @@ class _UserCard extends StatelessWidget {
                                 const SizedBox(height: 2),
                                 Row(
                                   children: [
-                                    Text('$roleLabel',
+                                    Text(roleLabel,
                                         style: TextStyle(fontSize: 11, color: Colors.grey[500])),
                                     const SizedBox(width: 8),
                                     Container(

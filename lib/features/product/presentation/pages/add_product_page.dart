@@ -327,15 +327,15 @@ class _AddProductPageState extends State<AddProductPage> {
                   TextFormField(
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: '0.00',
                       prefixText: 'KES ',
-                      prefixStyle: const TextStyle(
+                      prefixStyle: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                           color: Colors.black),
                       isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(
+                      contentPadding: EdgeInsets.symmetric(
                           horizontal: 12, vertical: 10),
                     ),
                     validator: AppValidators.price,
@@ -347,15 +347,15 @@ class _AddProductPageState extends State<AddProductPage> {
                   TextFormField(
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: '0.00',
                       prefixText: 'KES ',
-                      prefixStyle: const TextStyle(
+                      prefixStyle: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                           color: Colors.black),
                       isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(
+                      contentPadding: EdgeInsets.symmetric(
                           horizontal: 12, vertical: 10),
                     ),
                     validator: AppValidators.price,
@@ -400,10 +400,10 @@ class _AddProductPageState extends State<AddProductPage> {
                   const SizedBox(height: 12),
                   _label('Assigned To'),
                   DropdownButtonFormField<String?>(
-                    value: _assignedTo,
+                    initialValue: _assignedTo,
                     decoration: _compact(hint: 'Unassigned'),
                     items: [
-                      DropdownMenuItem(value: null, child: Text('Unassigned', style: TextStyle(fontSize: 14))),
+                      const DropdownMenuItem(value: null, child: Text('Unassigned', style: TextStyle(fontSize: 14))),
                       ...HiveDatabase.usersBox.values.where((u) => u.isActive).map((u) => DropdownMenuItem(
                         value: u.id,
                         child: Text(u.name, style: const TextStyle(fontSize: 14)),

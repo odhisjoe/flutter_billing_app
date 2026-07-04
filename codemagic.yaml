@@ -1,0 +1,61 @@
+workflows:
+  android-firebase:
+    name: Android & Web Build + Firebase Distribution
+    instance_type: mac_mini_m1
+    max_build_duration: 60
+
+    triggers:
+      push:
+        branches:
+          - main
+          - master
+      pull_request:
+        branches:
+          - main
+          - master
+
+    environment:
+      flutter: stable
+      xcode: latest
+      vars:
+        FIREBASE_APP_ID: "1:1053407529306:android:5ec7835abc91ad8fd5cb63"
+        FIREBASE_GROUPS: "testers"
+
+    scripts:
+      - name: Decode keystore
+        script: |
+          echo $CM_KEYSTORE | base64 --decode > android/app/upload-keystore.jks
+      - name: Set up key.properties
+        script: |
+          echo "storeFile=../app/upload-keystore.jks" > android/key.properties
+          echo "keyAlias=$CM_KEY_ALIAS" >> android/key.properties
+          echo "storePassword=$CM_KEY_PASSWORD" >> android/key.properties
+          echo "keyPassword=$CM_KEY_PASSWORD" >> android/key.properties
+      - name: Get dependencies
+        script: flutter pub get
+      - name: Build Android APK
+        script: flutter build apk --release
+      - name: Build Web
+        script: flutter build web --release
+      - name: Copy APK to web assets
+        script: |
+          cp build/app/outputs/flutter-apk/app-release.apk build/web/pos-mashinani.apk
+      - name: Deploy to Firebase Hosting
+        script: |
+          npm install -g firebase-tools
+          firebase deploy --only hosting --token $FIREBASE_TOKEN
+      - name: Distribute APK to Firebase App Distribution
+        script: |
+          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
+            --app $FIREBASE_APP_ID \
+            --groups $FIREBASE_GROUPS \
+            --token $FIREBASE_TOKEN
+
+    artifacts:
+      - build/app/outputs/flutter-apk/**/*.apk
+      - build/web/**/*
+
+    publishing:
+      email:
+        recipients:
+          - builder@codemagic.io

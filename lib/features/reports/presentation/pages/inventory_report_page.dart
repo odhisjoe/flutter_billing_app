@@ -90,7 +90,7 @@ class _InventoryReportPageState extends State<InventoryReportPage> {
     ]).toList();
 
     rows.add([
-      'TOTAL', '', '', '${_totalStock}',
+      'TOTAL', '', '', '$_totalStock',
       '', '',
       AppConstants.formatPrice(_totalValue),
     ]);
@@ -168,8 +168,8 @@ class _InventoryReportPageState extends State<InventoryReportPage> {
             child: Row(
               children: [
                 Text(
-                  '${_filteredProducts.length} product${_filteredProducts.length == 1 ? '' : 's'} | '
-                  '${_totalStock} units | Value: ${AppConstants.formatPrice(_totalValue)}',
+                  '$_filteredProducts.length product${_filteredProducts.length == 1 ? '' : 's'} | '
+                  '$_totalStock units | Value: ${AppConstants.formatPrice(_totalValue)}',
                   style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                 ),
               ],
@@ -292,10 +292,10 @@ class _InventoryReportPageState extends State<InventoryReportPage> {
           isDense: true,
           isExpanded: true,
           items: [
-            DropdownMenuItem(
+            const DropdownMenuItem(
                 value: null,
                 child: Text('All Categories',
-                    style: const TextStyle(fontSize: 13))),
+                    style: TextStyle(fontSize: 13))),
             ...cats.map((cat) => DropdownMenuItem(
                 value: cat,
                 child:

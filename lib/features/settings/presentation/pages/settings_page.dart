@@ -235,6 +235,14 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                         onTap: () => context.push('/settings/firebase-link'),
                       ),
+                      if (isLinked)
+                        _buildListItem(
+                          icon: Icons.link,
+                          title: 'Link Devices',
+                          subtitle: 'Generate QR code to link new devices',
+                          trailingWidget: Icon(Icons.chevron_right, color: Colors.grey[400], size: 20),
+                          onTap: () => context.push('/admin/link-device'),
+                        ),
                       if (syncStatus == SyncStatus.syncing)
                         Padding(
                           padding: const EdgeInsets.symmetric(
@@ -456,13 +464,13 @@ class _SettingsPageState extends State<SettingsPage> {
                     _buildDivider(),
                     InkWell(
                       onTap: () => _showAddNetworkPrinterDialog(context),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
+                      child: const Padding(
+                        padding: EdgeInsets.all(16),
                         child: Row(
                           children: [
                             Icon(Icons.add_circle_outline,
                                 size: 18, color: AppTheme.primaryColor),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8),
                             Text('Add Network Printer',
                                 style: TextStyle(
                                     fontSize: 13, color: AppTheme.primaryColor)),
@@ -611,6 +619,7 @@ class _SettingsPageState extends State<SettingsPage> {
         json = await File(result.files.single.path!).readAsString();
       }
 
+      if (!mounted) return;
       showDialog(
         context: context,
         barrierDismissible: false,

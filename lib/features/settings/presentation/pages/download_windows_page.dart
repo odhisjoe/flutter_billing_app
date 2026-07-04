@@ -217,8 +217,8 @@ class DownloadWindowsPage extends StatelessWidget {
   Future<void> _downloadWindows(BuildContext context) async {
     if (windowsExeUrl.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
+        const SnackBar(
+          content: Text(
               'No download URL configured. Build from source using the instructions above.'),
           backgroundColor: Colors.orange,
           behavior: SnackBarBehavior.floating,

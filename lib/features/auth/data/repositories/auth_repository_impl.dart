@@ -35,7 +35,7 @@ class AuthRepositoryImpl implements AuthRepository {
       }
 
       if (matched == null) {
-        return Left(CacheFailure('Invalid PIN or role'));
+        return const Left(CacheFailure('Invalid PIN or role'));
       }
 
       final encrypted = _encryptionService.encryptPin(pin);

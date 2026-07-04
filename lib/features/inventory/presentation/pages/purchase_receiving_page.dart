@@ -93,18 +93,6 @@ class _PurchaseReceivingPageState extends State<PurchaseReceivingPage> {
     }
   }
 
-  void _scrollToProduct(String productId) {
-    final state = context.read<ProductBloc>().state;
-    final index = state.products.indexWhere((p) => p.id == productId);
-    if (index >= 0 && _scrollController.hasClients) {
-      _scrollController.animateTo(
-        index * 100.0,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
-  }
-
   String? _adminName(String? id) {
     if (id == null) return null;
     try {
@@ -136,7 +124,8 @@ class _PurchaseReceivingPageState extends State<PurchaseReceivingPage> {
       ),
     );
 
-    context.read<ProductBloc>().add(LoadProducts());
+    if (!mounted) return;
+    context.read<ProductBloc>().add(const LoadProducts());
     ctrl.clear();
 
     if (mounted) {
@@ -228,7 +217,7 @@ class _PurchaseReceivingPageState extends State<PurchaseReceivingPage> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: IconButton(
-                    icon: Icon(Icons.qr_code_scanner, color: AppTheme.primaryColor),
+                    icon: const Icon(Icons.qr_code_scanner, color: AppTheme.primaryColor),
                     tooltip: 'Scan barcode to find product',
                     onPressed: _scanBarcode,
                   ),
@@ -286,8 +275,8 @@ class _PurchaseReceivingPageState extends State<PurchaseReceivingPage> {
                                               Row(
                                                 children: [
                                                   Flexible(
-                                                    child: Text(product.name,
-                                                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                                                    child:                                                     Text(product.name,
+                                                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                                                   ),
                                                   const SizedBox(width: 4),
                                                   Icon(Icons.edit_outlined, size: 12, color: Colors.grey[400]),

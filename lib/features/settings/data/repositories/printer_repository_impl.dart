@@ -74,7 +74,7 @@ class PrinterRepositoryImpl implements PrinterRepository {
     try {
       final map = jsonDecode(raw) as Map<String, dynamic>;
       final typeIndex = map['driverType'] as int? ?? 0;
-      final safeTypes = PrinterDriverType.values;
+      const safeTypes = PrinterDriverType.values;
       return PrinterDevice(
         name: map['name'] as String? ?? '',
         address: map['address'] as String? ?? '',

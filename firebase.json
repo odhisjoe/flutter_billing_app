@@ -6,7 +6,8 @@
       "**/.*",
       "**/node_modules/**",
       "**/*.exe",
-      "**/*.exe"
+      "**/*.exe",
+      "**/win_ble/**"
     ],
     "headers": [
       {

@@ -488,8 +488,8 @@ class _HomePageState extends State<HomePage> {
                           color: AppTheme.primaryColor,
                           borderRadius: BorderRadius.circular(3),
                         ),
-                        child: const Icon(Icons.add, color: Colors.white, size: 10),
                         padding: const EdgeInsets.all(2),
+                        child: const Icon(Icons.add, color: Colors.white, size: 10),
                       ),
                     ],
                   ),
@@ -658,7 +658,7 @@ class _HomePageState extends State<HomePage> {
             ),
             child: Row(
               children: [
-                Icon(Icons.shopping_cart,
+                const Icon(Icons.shopping_cart,
                     color: AppTheme.primaryColor, size: 16),
                 const SizedBox(width: 4),
                 const Text('Order',
@@ -1146,7 +1146,7 @@ class _HomePageState extends State<HomePage> {
       }
 
       if (context.mounted) {
-        context.read<ProductBloc>().add(LoadProducts());
+        context.read<ProductBloc>().add(const LoadProducts());
       }
     } catch (e) {
       debugPrint('[SALE_SAVE] Exception: $e');

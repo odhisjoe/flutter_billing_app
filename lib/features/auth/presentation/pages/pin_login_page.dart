@@ -242,6 +242,13 @@ class _PinLoginPageState extends State<PinLoginPage> {
                   ],
                 ),
                 const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: () => context.push('/link-to-shop'),
+                  icon: Icon(Icons.link, size: 14, color: Colors.grey[350]),
+                  label: Text('Link to Existing Shop',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[350])),
+                ),
+                const SizedBox(height: 8),
                 GestureDetector(
                   onTap: _onVersionTap,
                   child: Text('v1.0.0', style: TextStyle(fontSize: 11, color: Colors.grey[300])),
@@ -297,7 +304,7 @@ class _PinLoginPageState extends State<PinLoginPage> {
             children: [
               CircleAvatar(
                 radius: 18,
-                backgroundColor: color.withOpacity(0.12),
+                backgroundColor: color.withValues(alpha: 0.12),
                 child: Text(user.name[0].toUpperCase(),
                     style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16)),
               ),
@@ -351,7 +358,7 @@ class _PinLoginPageState extends State<PinLoginPage> {
                   CircleAvatar(
                     radius: 28,
                     backgroundColor: (_selectedUser!.role == UserRole.admin
-                        ? Colors.purple : Colors.teal).withOpacity(0.12),
+                        ? Colors.purple : Colors.teal).withValues(alpha: 0.12),
                     child: Text(_selectedUser!.name[0].toUpperCase(),
                         style: TextStyle(
                           color: _selectedUser!.role == UserRole.admin

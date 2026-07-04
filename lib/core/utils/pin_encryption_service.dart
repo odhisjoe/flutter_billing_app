@@ -56,7 +56,7 @@ class PinEncryptionService {
     _ensureInitialized();
     final parts = encryptedPin.split(':');
     if (parts.length != 2) {
-      throw FormatException('Not a valid encrypted PIN');
+      throw const FormatException('Not a valid encrypted PIN');
     }
     final iv = encrypt.IV(base64.decode(parts[0]));
     final encrypter = encrypt.Encrypter(encrypt.AES(_key!));

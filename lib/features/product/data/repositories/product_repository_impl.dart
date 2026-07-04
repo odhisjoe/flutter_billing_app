@@ -38,7 +38,7 @@ class ProductRepositoryImpl implements ProductRepository {
       }
       final product = _barcodeIndex[barcode];
       if (product == null) {
-        return Left(CacheFailure('Product not found'));
+        return const Left(CacheFailure('Product not found'));
       }
       return Right(product);
     } catch (e) {

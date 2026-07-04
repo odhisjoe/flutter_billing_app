@@ -943,7 +943,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       }
 
       if (context.mounted) {
-        context.read<ProductBloc>().add(LoadProducts());
+        context.read<ProductBloc>().add(const LoadProducts());
       }
     } catch (e) {
       debugPrint('[SALE_SAVE] Exception: $e');
