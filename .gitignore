@@ -38,6 +38,9 @@ node_modules/
 *.hprof
 *.snap
 
+# Backend build output
+backend/dist/
+
 # Nested duplicate
 flutter_billing_app-main/
 

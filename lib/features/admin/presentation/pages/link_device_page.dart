@@ -1,11 +1,9 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
-import '../../../../core/services/device_linking_service.dart';
-import '../../../../core/services/sync_service.dart';
+import '../../../../core/services/api_device_linking_service.dart';
+import '../../../../core/services/api_config_service.dart';
 import '../../../../core/service_locator.dart' as di;
 import '../../../../core/theme/app_theme.dart';
 
@@ -17,17 +15,23 @@ class LinkDevicePage extends StatefulWidget {
 }
 
 class _LinkDevicePageState extends State<LinkDevicePage> {
-  final _service = DeviceLinkingService();
+  final _service = ApiDeviceLinkingService();
   String? _currentCode;
-  LinkingCodeInfo? _currentInfo;
-  StreamSubscription? _watchSub;
+  String? _currentPin;
   bool _loading = false;
   String? _error;
+  String? _tenantId;
 
   @override
-  void dispose() {
-    _watchSub?.cancel();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _loadTenantId();
+  }
+
+  Future<void> _loadTenantId() async {
+    final config = di.sl<ApiConfigService>();
+    final tenantId = await config.getTenantId();
+    if (mounted) setState(() => _tenantId = tenantId);
   }
 
   Future<void> _generateCode() async {
@@ -35,139 +39,37 @@ class _LinkDevicePageState extends State<LinkDevicePage> {
       _loading = true;
       _error = null;
       _currentCode = null;
-      _currentInfo = null;
+      _currentPin = null;
     });
-    _watchSub?.cancel();
 
     try {
-      final syncService = di.sl<SyncService>();
-      if (!syncService.isSignedIn) {
+      if (_tenantId == null) {
         setState(() {
-          _error = 'Cloud Sync not connected. Go to Settings > Cloud Sync first.';
+          _error = 'Tenant ID not found. Ensure cloud sync is connected.';
           _loading = false;
         });
         return;
       }
 
-      final tenantId = await _findTenantId();
-      if (tenantId == null) {
+      final info = await _service.createSession(_tenantId!);
+      if (info == null) {
         setState(() {
-          _error = 'Tenant not found. Ensure cloud sync is set up.';
+          _error = 'Failed to generate pairing code. Check server connection.';
           _loading = false;
         });
         return;
       }
 
-      final code = await _service.generateLinkingCode(tenantId);
-      _currentCode = code;
-
-      _watchSub = _service.watchLinkingCode(code).listen((info) {
-        if (!mounted) return;
-        setState(() => _currentInfo = info);
-        if (info?.isLinked == true) {
-          _showApprovalDialog(info!);
-        }
+      setState(() {
+        _currentCode = info.code;
+        _currentPin = info.pin;
+        _loading = false;
       });
-
-      setState(() => _loading = false);
     } catch (e) {
       setState(() {
         _error = 'Failed to generate code: $e';
         _loading = false;
       });
-    }
-  }
-
-  Future<String?> _findTenantId() async {
-    try {
-      final db = FirebaseFirestore.instance;
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return null;
-
-      final tenants =
-          await db.collection('tenants').where('ownerAdminUid', isEqualTo: uid).limit(1).get();
-      if (tenants.docs.isNotEmpty) return tenants.docs.first.id;
-
-      final adminDocs = await db.collectionGroup('admins')
-          .where('ownerAdminUid', isEqualTo: uid).limit(1).get();
-      if (adminDocs.docs.isNotEmpty) {
-        final ref = adminDocs.docs.first.reference;
-        return ref.parent.parent?.id;
-      }
-    } catch (_) {}
-    return null;
-  }
-
-  Future<void> _showApprovalDialog(LinkingCodeInfo info) async {
-    final approve = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Device Wants to Link'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.devices, color: AppTheme.primaryColor),
-                const SizedBox(width: 8),
-                Text(info.deviceName ?? 'Unknown device',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Text('A new device is requesting to link to this shop.'),
-            const SizedBox(height: 8),
-            const Text('Granting access will allow this device to read all shop data.'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Reject', style: TextStyle(color: Colors.red)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('Approve'),
-          ),
-        ],
-      ),
-    );
-
-    if (approve == null || !mounted) return;
-
-    if (approve) {
-      final success = await _service.approveLinking(info.code, isAdmin: false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(success ? 'Device linked successfully!' : 'Failed to approve device'),
-            backgroundColor: success ? Colors.green : Colors.red,
-          ),
-        );
-        if (success) {
-          _currentCode = null;
-          _currentInfo = null;
-          _watchSub?.cancel();
-          setState(() {});
-        }
-      }
-    } else {
-      await _service.rejectLinking(info.code);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Linking request rejected'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-        _currentCode = null;
-        _currentInfo = null;
-        _watchSub?.cancel();
-        setState(() {});
-      }
     }
   }
 
@@ -223,11 +125,6 @@ class _LinkDevicePageState extends State<LinkDevicePage> {
   }
 
   Widget _buildCodeDisplay() {
-    final info = _currentInfo;
-    final expiresIn = info != null
-        ? info.expiresAt.difference(DateTime.now())
-        : const Duration(hours: 24);
-
     return SingleChildScrollView(
       child: Column(
         children: [
@@ -256,12 +153,17 @@ class _LinkDevicePageState extends State<LinkDevicePage> {
             ),
             child: Column(
               children: [
-                // ignore: deprecated_member_use
-                PrettyQr(
-                  data: 'pos-link://$_currentCode',
-                  size: 200,
-                  elementColor: Colors.black87,
-                  roundEdges: true,
+                SizedBox.square(
+                  dimension: 200,
+                  child: PrettyQrView.data(
+                    data: 'pos-link://$_currentCode',
+                    decoration: const PrettyQrDecoration(
+                      shape: PrettyQrSmoothSymbol(
+                        color: Colors.black87,
+                        roundFactor: 1.0,
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Container(
@@ -279,30 +181,33 @@ class _LinkDevicePageState extends State<LinkDevicePage> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Expires in ${expiresIn.inHours}h ${expiresIn.inMinutes.remainder(60)}m',
-            style: TextStyle(fontSize: 12, color: Colors.grey[400]),
-          ),
-          const SizedBox(height: 24),
-          if (info?.isLinked == true)
+          if (_currentPin != null) ...[
+            const SizedBox(height: 16),
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.orange[50],
+                color: Colors.blue[50],
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange[200]!),
+                border: Border.all(color: Colors.blue[200]!),
               ),
-              child: Row(
+              child: Column(
                 children: [
-                  const Icon(Icons.hourglass_top, color: Colors.orange, size: 18),
-                  const SizedBox(width: 8),
-                  Text('Waiting for your approval...',
-                      style: TextStyle(color: Colors.orange[800], fontSize: 13)),
+                  Text('Fallback PIN', style: TextStyle(fontSize: 12, color: Colors.blue[700], fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  SelectableText(
+                    _currentPin!,
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 8),
+                  ),
                 ],
               ),
             ),
-          const SizedBox(height: 16),
+          ],
+          const SizedBox(height: 8),
+          Text(
+            'Code expires in 5 minutes',
+            style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+          ),
+          const SizedBox(height: 24),
           OutlinedButton.icon(
             onPressed: _loading ? null : _generateCode,
             icon: const Icon(Icons.refresh),

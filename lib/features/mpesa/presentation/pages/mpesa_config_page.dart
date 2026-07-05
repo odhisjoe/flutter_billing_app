@@ -26,6 +26,7 @@ class _MpesaConfigModalState extends State<_MpesaConfigModal> {
   final _consumerKeyCtrl = TextEditingController();
   final _consumerSecretCtrl = TextEditingController();
   final _passkeyCtrl = TextEditingController();
+  final _shortcodeCtrl = TextEditingController();
   bool _isSandbox = true;
   bool _showSecrets = false;
 
@@ -41,6 +42,7 @@ class _MpesaConfigModalState extends State<_MpesaConfigModal> {
     _consumerKeyCtrl.dispose();
     _consumerSecretCtrl.dispose();
     _passkeyCtrl.dispose();
+    _shortcodeCtrl.dispose();
     super.dispose();
   }
 
@@ -49,6 +51,7 @@ class _MpesaConfigModalState extends State<_MpesaConfigModal> {
     _consumerKeyCtrl.text = config.consumerKey;
     _consumerSecretCtrl.text = config.consumerSecret;
     _passkeyCtrl.text = config.passkey;
+    _shortcodeCtrl.text = config.shortcode;
     _isSandbox = config.isSandbox;
   }
 
@@ -58,7 +61,7 @@ class _MpesaConfigModalState extends State<_MpesaConfigModal> {
       consumerKey: _consumerKeyCtrl.text.trim(),
       consumerSecret: _consumerSecretCtrl.text.trim(),
       passkey: _passkeyCtrl.text.trim(),
-      shortcode: '',
+      shortcode: _shortcodeCtrl.text.trim(),
       isSandbox: _isSandbox,
     )));
   }
@@ -170,6 +173,19 @@ class _MpesaConfigModalState extends State<_MpesaConfigModal> {
                             ),
                           ),
                           style: const TextStyle(fontSize: 13),
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: _shortcodeCtrl,
+                          decoration: InputDecoration(
+                            labelText: 'Shortcode (Till Number)',
+                            hintText: 'e.g. 174379',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                          ),
+                          style: const TextStyle(fontSize: 13),
+                          keyboardType: TextInputType.number,
                         ),
                         const SizedBox(height: 14),
                         Container(

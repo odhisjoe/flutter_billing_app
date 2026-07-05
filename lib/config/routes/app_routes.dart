@@ -7,7 +7,6 @@ import '../../features/auth/presentation/pages/super_admin_dashboard.dart';
 import '../../features/auth/presentation/pages/operations_pin_page.dart';
 import '../../features/auth/presentation/pages/pin_login_page.dart';
 import '../../features/auth/presentation/pages/set_pin_page.dart';
-import '../../features/auth/presentation/pages/firebase_link_page.dart';
 import '../../features/auth/presentation/pages/link_to_shop_page.dart';
 import '../../features/admin/presentation/pages/link_device_page.dart';
 import '../../features/employees/presentation/pages/employee_management_page.dart';
@@ -138,10 +137,6 @@ final router = GoRouter(
       path: '/settings',
       builder: (context, state) => const SettingsPage(),
       routes: [
-        GoRoute(
-          path: 'firebase-link',
-          builder: (context, state) => const FirebaseLinkPage(),
-        ),
         GoRoute(
           path: 'mpesa',
           builder: (context, state) => const MpesaConfigPage(),

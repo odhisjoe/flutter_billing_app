@@ -1,4 +1,3 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
@@ -8,8 +7,7 @@ import 'core/data/hive_database.dart';
 import 'core/database/secondary_db.dart';
 import 'core/service_locator.dart' as di;
 import 'core/services/workmanager_sync.dart';
-import 'core/services/firebase_options.dart';
-import 'core/services/firebase_sync_service.dart';
+import 'core/services/api_sync_service.dart';
 import 'core/services/sync_service.dart';
 import 'core/services/sync_status.dart';
 import 'core/theme/app_theme.dart';
@@ -36,24 +34,21 @@ import 'features/mpesa/presentation/bloc/mpesa_bloc.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await HiveDatabase.init();
-  await SecondaryDb.database; // initialize secondary SQLite DB
+  await SecondaryDb.database;
   await di.init();
-  await initializeWorkmanager(); // background sync every 15 min
+  await initializeWorkmanager();
 
   SyncService syncService = di.sl<SyncService>();
   try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    final fbSync = FirebaseSyncService();
-    await fbSync.initialize();
-    syncService = fbSync;
-    di.sl.allowReassignment = true;
-    di.sl.registerSingleton<SyncService>(fbSync);
-    di.sl.allowReassignment = false;
-    debugPrint('[FIREBASE] Initialized successfully');
-  } catch (e) {
-    debugPrint('[FIREBASE] Initialization skipped: $e');
+    final apiSync = ApiSyncService(config: di.sl());
+    await apiSync.initialize();
+    if (apiSync.isSignedIn) {
+      syncService = apiSync;
+      di.sl.allowReassignment = true;
+      di.sl.registerSingleton<SyncService>(apiSync);
+      di.sl.allowReassignment = false;
+    }
+  } catch (_) {
     syncService.initialize();
   }
 

@@ -33,6 +33,7 @@ import '../../features/supplier/domain/usecases/supplier_usecases.dart';
 import '../../features/supplier/presentation/bloc/supplier_bloc.dart';
 import '../../features/mpesa/data/mpesa_repository_impl.dart';
 import '../../features/mpesa/presentation/bloc/mpesa_bloc.dart';
+import 'services/api_config_service.dart';
 import 'services/noop_sync_service.dart';
 import 'services/sync_service.dart';
 
@@ -40,6 +41,7 @@ final sl = GetIt.instance;
 
 Future<void> init() async {
   // Core Services
+  sl.registerLazySingleton<ApiConfigService>(() => ApiConfigService());
   sl.registerLazySingleton<SyncService>(() => NoopSyncService());
   sl.registerLazySingleton<PinEncryptionService>(() => PinEncryptionService());
 

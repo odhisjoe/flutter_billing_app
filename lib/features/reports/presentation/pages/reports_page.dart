@@ -38,10 +38,7 @@ class _ReportsPageState extends State<ReportsPage> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadData();
-    _salesSubscription = HiveDatabase.salesBox.watch().listen((event) {
-      debugPrint('[REPORTS_WATCH] Box changed: ${event.key} (deleted: ${event.deleted})');
-      _loadData();
-    });
+    _salesSubscription = HiveDatabase.salesBox.watch().listen((_) => _loadData());
   }
 
   @override
@@ -62,20 +59,10 @@ class _ReportsPageState extends State<ReportsPage> with WidgetsBindingObserver {
       final saleRepo = sl<GetAllSalesUseCase>();
       final result = await saleRepo(NoParams());
       result.fold(
-        (_) {
-          debugPrint('[REPORTS_LOAD] getAllSales returned Left (failure)');
-          _allSales = [];
-        },
-        (sales) {
-          _allSales = sales;
-          debugPrint('[REPORTS_LOAD] Loaded ${sales.length} sales');
-          if (sales.isNotEmpty) {
-            debugPrint('[REPORTS_LOAD] First sale: id=${sales.first.id}, items=${sales.first.items.length}, total=${sales.first.grandTotal}');
-          }
-        },
+        (_) => _allSales = [],
+        (sales) => _allSales = sales,
       );
-    } catch (e) {
-      debugPrint('[REPORTS_LOAD] Exception: $e');
+    } catch (_) {
     }
     _recomputeAggregates();
     if (mounted) setState(() => _loading = false);

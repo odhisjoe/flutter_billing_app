@@ -18,7 +18,7 @@ class SecondaryDb {
     final path = p.join(dbPath, 'secondary.db');
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE sync_queue (
@@ -57,9 +57,17 @@ class SecondaryDb {
             shortcode TEXT NOT NULL DEFAULT '',
             server_url TEXT NOT NULL DEFAULT '',
             is_sandbox INTEGER NOT NULL DEFAULT 1,
+            encrypted TEXT NOT NULL DEFAULT '',
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
           )
         ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          try {
+            await db.execute("ALTER TABLE mpesa_config ADD COLUMN encrypted TEXT NOT NULL DEFAULT ''");
+          } catch (_) {}
+        }
       },
     );
   }
@@ -206,6 +214,7 @@ class SecondaryDb {
     required String shortcode,
     required String serverUrl,
     required bool isSandbox,
+    String encrypted = '',
   }) async {
     final db = await database;
     if (db == null) return;
@@ -217,6 +226,7 @@ class SecondaryDb {
       'shortcode': shortcode,
       'server_url': serverUrl,
       'is_sandbox': isSandbox ? 1 : 0,
+      'encrypted': encrypted,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 

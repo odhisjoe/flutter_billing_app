@@ -21,7 +21,7 @@ class NoopSyncService implements SyncService {
 
   @override
   Future<void> signIn(String email, String password) async {
-    throw UnsupportedError('Firebase not available');
+    throw UnsupportedError('Use device pairing instead of email/password sign-in');
   }
 
   @override

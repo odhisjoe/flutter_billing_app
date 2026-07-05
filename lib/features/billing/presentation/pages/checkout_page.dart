@@ -925,13 +925,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         cashierName: currentUser?.name,
       );
 
-      debugPrint('[SALE_SAVE] Sale ID: ${sale.id}, Items: ${sale.items.length}, Total: ${sale.grandTotal}');
-
-      final saveResult = await useCase(sale);
-      saveResult.fold(
-        (failure) => debugPrint('[SALE_SAVE] Failed: $failure'),
-        (_) => debugPrint('[SALE_SAVE] Saved successfully'),
-      );
+      await useCase(sale);
 
       for (final item in state.cartItems) {
         final product = item.product;
@@ -945,8 +939,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       if (context.mounted) {
         context.read<ProductBloc>().add(const LoadProducts());
       }
-    } catch (e) {
-      debugPrint('[SALE_SAVE] Exception: $e');
+    } catch (_) {
     }
   }
 

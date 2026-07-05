@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 class DownloadWindowsPage extends StatelessWidget {
   const DownloadWindowsPage({super.key});
 
-  static const String windowsExeUrl = '';
+  static const String windowsExeUrl = 'https://github.com/odhisjoe/flutter_billing_app/releases/latest/download/pos-mashinani-windows.exe';
   static const String versionName = 'v1.0.0';
 
   @override

@@ -1,9 +1,10 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import '../../../../core/services/device_linking_service.dart';
+import '../../../../core/services/api_device_linking_service.dart';
+import '../../../../core/services/api_config_service.dart';
+import '../../../../core/services/api_sync_service.dart';
 import '../../../../core/services/sync_service.dart';
 import '../../../../core/service_locator.dart' as di;
 import '../../../../core/theme/app_theme.dart';
@@ -18,19 +19,37 @@ class LinkToShopPage extends StatefulWidget {
 class _LinkToShopPageState extends State<LinkToShopPage> {
   final _codeCtrl = TextEditingController();
   final _deviceNameCtrl = TextEditingController(text: '');
-  final _service = DeviceLinkingService();
-  StreamSubscription? _watchSub;
+  final _serverUrlCtrl = TextEditingController();
+  final _shopNameCtrl = TextEditingController();
+  final _recoveryPinCtrl = TextEditingController();
+  final _service = ApiDeviceLinkingService();
   bool _loading = false;
   String? _error;
-  String? _linkingCode;
   String? _statusMessage;
   bool _showScanner = false;
+  bool _showRecoveryForm = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadServerUrl();
+  }
+
+  Future<void> _loadServerUrl() async {
+    final config = di.sl<ApiConfigService>();
+    final url = await config.getServerUrl();
+    if (url.isNotEmpty && mounted) {
+      _serverUrlCtrl.text = url;
+    }
+  }
 
   @override
   void dispose() {
     _codeCtrl.dispose();
     _deviceNameCtrl.dispose();
-    _watchSub?.cancel();
+    _serverUrlCtrl.dispose();
+    _shopNameCtrl.dispose();
+    _recoveryPinCtrl.dispose();
     super.dispose();
   }
 
@@ -38,76 +57,76 @@ class _LinkToShopPageState extends State<LinkToShopPage> {
     setState(() {
       _error = null;
       _loading = true;
-      _linkingCode = code.toUpperCase().trim();
+      _statusMessage = null;
     });
 
     try {
-      final info = await _service.getLinkingCode(_linkingCode!);
-      if (info == null) {
+      final serverUrl = _serverUrlCtrl.text.trim();
+      if (serverUrl.isEmpty) {
         setState(() {
-          _error = 'Invalid linking code. Check and try again.';
+          _error = 'Enter the server URL first';
           _loading = false;
         });
         return;
       }
 
-      if (info.isExpired) {
+      final config = di.sl<ApiConfigService>();
+      await config.saveServerUrl(serverUrl);
+
+      final result = await _service.redeemSession(
+        code.toUpperCase().trim(),
+        _deviceNameCtrl.text.trim(),
+      );
+
+      if (result == null) {
         setState(() {
-          _error = 'This linking code has expired. Ask the admin to generate a new one.';
+          _error = 'Could not reach server. Check the URL and try again.';
           _loading = false;
         });
         return;
       }
 
-      if (!info.isPending) {
+      if (result.containsKey('error')) {
         setState(() {
-          _error = 'This code has already been used.';
+          _error = result['error'] as String?;
           _loading = false;
         });
         return;
       }
 
-      String deviceName = _deviceNameCtrl.text.trim();
-      if (deviceName.isEmpty) {
-        deviceName = 'Device ${DateTime.now().millisecondsSinceEpoch.toString().substring(6)}';
-      }
+      final jwt = result['token'] as String?;
+      final tenantId = result['tenantId'] as String?;
 
-      await _service.signInAnonymously();
-
-      final submitted = await _service.submitLinkingRequest(_linkingCode!, deviceName);
-      if (!submitted) {
+      if (jwt == null || tenantId == null) {
         setState(() {
-          _error = 'Failed to submit linking request. Try again.';
+          _error = 'Invalid server response';
           _loading = false;
         });
         return;
       }
 
-      setState(() {
-        _statusMessage = 'Request sent! Waiting for admin approval...';
-        _loading = false;
-      });
+      await config.saveJwtToken(jwt);
+      await config.saveTenantId(tenantId);
+      if (result['deviceId'] != null) {
+        await config.saveDeviceId(result['deviceId'] as String);
+      }
 
-      _watchSub = _service.watchLinkingCode(_linkingCode!).listen((info) async {
-        if (!mounted || info == null) return;
-        if (info.isApproved) {
-          _watchSub?.cancel();
-          setState(() => _statusMessage = 'Approved! Syncing data...');
-          await _syncData();
-        } else if (info.status == 'rejected') {
-          _watchSub?.cancel();
-          if (mounted) {
-            setState(() => _statusMessage = null);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Linking request was rejected by admin'),
-                backgroundColor: Colors.orange,
-              ),
-            );
-            context.pop();
-          }
-        }
-      });
+      setState(() => _statusMessage = 'Linked! Syncing data...');
+
+      final syncService = di.sl<SyncService>();
+      if (syncService is ApiSyncService) {
+        await syncService.signInWithJwt(jwt, tenantId);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Shop linked successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        context.go('/login');
+      }
     } catch (e) {
       setState(() {
         _error = 'Error: $e';
@@ -116,48 +135,73 @@ class _LinkToShopPageState extends State<LinkToShopPage> {
     }
   }
 
-  Future<void> _syncData() async {
-    try {
-      final syncService = di.sl<SyncService>();
-      final firebaseSync = syncService;
+  Future<void> _redeemRecoveryPin() async {
+    setState(() {
+      _error = null;
+      _loading = true;
+      _statusMessage = null;
+    });
 
-      // Retry pullAll a few times since Firestore rules need to propagate
-      for (int i = 0; i < 5; i++) {
-        try {
-          await firebaseSync.pullAll();
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Shop linked successfully! Data synced.'),
-                backgroundColor: Colors.green,
-              ),
-            );
-            context.go('/login');
-          }
-          return;
-        } catch (_) {
-          await Future.delayed(const Duration(seconds: 2));
-        }
+    try {
+      final serverUrl = _serverUrlCtrl.text.trim();
+      if (serverUrl.isEmpty) {
+        setState(() { _error = 'Enter the server URL first'; _loading = false; });
+        return;
       }
+
+      final shopName = _shopNameCtrl.text.trim();
+      final recoveryPin = _recoveryPinCtrl.text.trim().toUpperCase();
+      if (shopName.isEmpty || recoveryPin.isEmpty) {
+        setState(() { _error = 'Enter both shop name and recovery PIN'; _loading = false; });
+        return;
+      }
+
+      final config = di.sl<ApiConfigService>();
+      await config.saveServerUrl(serverUrl);
+
+      final result = await _service.redeemRecoveryPin(
+        shopName: shopName,
+        recoveryPin: recoveryPin,
+        deviceName: _deviceNameCtrl.text.trim(),
+      );
+
+      if (result == null) {
+        setState(() { _error = 'Could not reach server. Check the URL and try again.'; _loading = false; });
+        return;
+      }
+
+      if (result.containsKey('error')) {
+        setState(() { _error = result['error'] as String?; _loading = false; });
+        return;
+      }
+
+      final jwt = result['token'] as String;
+      final tenantId = result['tenantId'] as String;
+
+      await config.saveJwtToken(jwt);
+      await config.saveTenantId(tenantId);
+      if (result['deviceId'] != null) {
+        await config.saveDeviceId(result['deviceId'] as String);
+      }
+
+      setState(() => _statusMessage = 'Recovered! Syncing data...');
+
+      final syncService = di.sl<SyncService>();
+      if (syncService is ApiSyncService) {
+        await syncService.signInWithJwt(jwt, tenantId);
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Linked but sync may take a moment'),
+            content: Text('Shop recovered successfully!'),
             backgroundColor: Colors.green,
           ),
         );
         context.go('/login');
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Sync error: $e'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-        context.go('/login');
-      }
+      setState(() { _error = 'Recovery failed: $e'; _loading = false; });
     }
   }
 
@@ -238,10 +282,22 @@ class _LinkToShopPageState extends State<LinkToShopPage> {
             style: TextStyle(fontSize: 13, color: Colors.grey[500]),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
+
+          TextFormField(
+            controller: _serverUrlCtrl,
+            decoration: InputDecoration(
+              labelText: 'Server URL',
+              hintText: 'https://your-app.onrender.com',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+            style: const TextStyle(fontSize: 14),
+          ),
+          const SizedBox(height: 16),
 
           SizedBox(
-            height: 160,
+            height: 140,
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.grey[50],
@@ -307,6 +363,90 @@ class _LinkToShopPageState extends State<LinkToShopPage> {
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
           ),
+          const SizedBox(height: 24),
+
+          // --- Recovery PIN section ---
+          const Divider(height: 1),
+          const SizedBox(height: 12),
+          if (!_showRecoveryForm)
+            Center(
+              child: TextButton.icon(
+                onPressed: () => setState(() => _showRecoveryForm = true),
+                icon: const Icon(Icons.security, size: 16, color: Colors.orange),
+                label: Text(
+                  'Lost all devices? Use recovery PIN',
+                  style: TextStyle(fontSize: 12, color: Colors.orange[700]),
+                ),
+              ),
+            )
+          else ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange[200]!),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.security, size: 16, color: Colors.orange[700]),
+                      const SizedBox(width: 6),
+                      Text('Recovery PIN', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.orange[800])),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => setState(() => _showRecoveryForm = false),
+                        child: Icon(Icons.close, size: 16, color: Colors.orange[400]),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _shopNameCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'Shop Name',
+                      hintText: 'e.g. Elite Groceries',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                    ),
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _recoveryPinCtrl,
+                    textCapitalization: TextCapitalization.characters,
+                    textAlign: TextAlign.center,
+                    decoration: InputDecoration(
+                      hintText: 'XXXX-XXXX-XXXX',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                    ),
+                    style: const TextStyle(fontSize: 16, letterSpacing: 4, fontWeight: FontWeight.bold),
+                    inputFormatters: [UpperCaseTextFormatter()],
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _loading ? null : _redeemRecoveryPin,
+                      icon: _loading
+                          ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Icon(Icons.restore, size: 14),
+                      label: Text(_loading ? 'Recovering...' : 'Recover Data'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 24),
 
           if (_error != null)

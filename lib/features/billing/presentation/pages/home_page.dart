@@ -143,7 +143,7 @@ class _HomePageState extends State<HomePage> {
                       return IconButton(
                         icon: Icon(icon, color: color, size: 20),
                         tooltip: 'Cloud: ${status.name}',
-                        onPressed: () => context.push('/settings/firebase-link'),
+                        onPressed: () => context.push('/settings'),
                       );
                     },
                   ),
@@ -1148,8 +1148,7 @@ class _HomePageState extends State<HomePage> {
       if (context.mounted) {
         context.read<ProductBloc>().add(const LoadProducts());
       }
-    } catch (e) {
-      debugPrint('[SALE_SAVE] Exception: $e');
+    } catch (_) {
     }
   }
 

@@ -69,9 +69,6 @@ dependencies:
   path_provider: ^2.1.4
   share_plus: ^10.1.4
   open_filex: ^4.5.0
-  firebase_core: ^4.11.0
-  firebase_auth: ^6.5.4
-  cloud_firestore: ^6.6.0
   url_launcher: ^6.3.0
   windows_printer: ^0.2.1
   flutter_thermal_printer_windows: ^0.0.1

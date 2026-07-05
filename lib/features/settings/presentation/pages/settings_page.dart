@@ -10,8 +10,12 @@ import 'package:go_router/go_router.dart';
 import 'package:app_settings/app_settings.dart';
 
 import '../../../../core/bloc/sync_status_cubit.dart';
+import '../../../../core/services/api_config_service.dart';
+import '../../../../core/services/api_device_linking_service.dart';
+import '../../../../core/services/api_sync_service.dart';
 import '../../../../core/services/sync_service.dart';
 import '../../../../core/services/sync_status.dart';
+import '../../../../core/service_locator.dart' as di;
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/backup_service.dart';
 import '../../../../core/utils/download_helper.dart';
@@ -201,81 +205,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
               // Cloud Sync Section (admin only)
               _buildSectionHeader('Cloud Sync'),
-              BlocBuilder<SyncStatusCubit, SyncStatus>(
-                builder: (context, syncStatus) {
-                  final syncService = context.read<SyncService>();
-                  final isLinked = syncService.isSignedIn;
-                  return _buildListGroup(
-                    children: [
-                      _buildListItem(
-                        icon: isLinked ? Icons.cloud_done : Icons.cloud_off,
-                        title: 'Firebase Account',
-                        subtitle: isLinked
-                            ? 'Cloud sync active'
-                            : 'Not connected',
-                        trailingWidget: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: isLinked
-                                ? Colors.green[100]
-                                : Colors.grey[200],
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            isLinked ? 'CONNECTED' : 'OFFLINE',
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                              color: isLinked
-                                  ? Colors.green[800]
-                                  : Colors.grey[600],
-                            ),
-                          ),
-                        ),
-                        onTap: () => context.push('/settings/firebase-link'),
-                      ),
-                      _buildListItem(
-                        icon: Icons.link,
-                        title: 'Link Devices',
-                        subtitle: isLinked
-                            ? 'Generate QR code to link new devices'
-                            : 'Connect Firebase first to enable device linking',
-                        trailingWidget: Icon(Icons.chevron_right, color: Colors.grey[400], size: 20),
-                        onTap: () {
-                          if (isLinked) {
-                            context.push('/admin/link-device');
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please connect Firebase Account first under Cloud Sync'),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          }
-                        },
-                      ),
-                      if (syncStatus == SyncStatus.syncing)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          child: Row(
-                            children: [
-                              const SizedBox(
-                                width: 14, height: 14,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                              const SizedBox(width: 8),
-                              Text('Syncing...',
-                                  style: TextStyle(
-                                      fontSize: 12, color: Colors.grey[600])),
-                            ],
-                          ),
-                        ),
-                    ],
-                  );
-                },
-              ),
+              _CloudSyncSection(),
             ],
 
             const SizedBox(height: 24),
@@ -770,5 +700,568 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ),
     );
+  }
+}
+
+class _CloudSyncSection extends StatefulWidget {
+  @override
+  State<_CloudSyncSection> createState() => _CloudSyncSectionState();
+}
+
+class _CloudSyncSectionState extends State<_CloudSyncSection> {
+  final _service = ApiDeviceLinkingService();
+  String? _serverUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadServerUrl();
+  }
+
+  Future<void> _loadServerUrl() async {
+    final config = di.sl<ApiConfigService>();
+    final url = await config.getServerUrl();
+    if (mounted) setState(() => _serverUrl = url);
+  }
+
+  Future<void> _showConnectDialog() async {
+    final urlCtrl = TextEditingController(text: _serverUrl ?? '');
+    final shopNameCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool isNewShop = false;
+
+    final result = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Server Connection'),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: urlCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Server URL',
+                    hintText: 'https://your-app.onrender.com',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return 'Enter server URL';
+                    if (!v.startsWith('http')) return 'Must start with http:// or https://';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Text('First-time setup?'),
+                    const SizedBox(width: 8),
+                    Switch(
+                      value: isNewShop,
+                      onChanged: (v) => setDialogState(() => isNewShop = v),
+                    ),
+                  ],
+                ),
+                if (isNewShop) ...[
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: shopNameCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Shop Name',
+                      hintText: 'e.g. Elite Groceries',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    validator: (v) {
+                      if (isNewShop && (v == null || v.isEmpty)) return 'Enter a shop name';
+                      return null;
+                    },
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  Navigator.pop(ctx, {
+                    'url': urlCtrl.text.trim(),
+                    'shopName': isNewShop ? shopNameCtrl.text.trim() : '',
+                    'isNew': isNewShop.toString(),
+                  });
+                }
+              },
+              child: Text(isNewShop ? 'Create Shop' : 'Connect'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result != null && mounted) {
+      final url = result['url']!;
+      final isNew = result['isNew'] == 'true';
+      setState(() => _serverUrl = url);
+      final config = di.sl<ApiConfigService>();
+      await config.saveServerUrl(url);
+
+      if (isNew) {
+        final shopName = result['shopName']!;
+        await _bootstrapShop(url, shopName);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(isNew ? 'Shop created and connected!' : 'Server URL saved'), backgroundColor: Colors.green, behavior: SnackBarBehavior.floating),
+        );
+      }
+    }
+  }
+
+  Future<void> _bootstrapShop(String serverUrl, String shopName) async {
+    try {
+      final result = await _service.bootstrap(shopName, 'Owner Device');
+
+      if (result == null || result.containsKey('error')) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result?['error'] as String? ?? 'Bootstrap failed'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
+          );
+        }
+        return;
+      }
+
+      final jwt = result['token'] as String;
+      final tenantId = result['tenantId'] as String;
+      final deviceId = result['deviceId'] as String;
+      final recoveryPin = result['recoveryPin'] as String?;
+
+      final config = di.sl<ApiConfigService>();
+      await config.saveJwtToken(jwt);
+      await config.saveTenantId(tenantId);
+      await config.saveDeviceId(deviceId);
+
+      if (!mounted) return;
+      final syncService = context.read<SyncService>();
+      if (syncService is ApiSyncService) {
+        await syncService.signInWithJwt(jwt, tenantId);
+      }
+
+      if (mounted) {
+        if (recoveryPin != null) {
+          await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (ctx) => AlertDialog(
+              title: const Row(
+                children: [
+                  Icon(Icons.security, color: Colors.orange),
+                  SizedBox(width: 8),
+                  Text('Recovery PIN'),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Save this recovery PIN — you will need it if you lose all devices.',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.orange[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange[200]!),
+                    ),
+                    child: SelectableText(
+                      recoveryPin,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 4,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Format: XXXX-XXXX-XXXX',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                  ),
+                ],
+              ),
+              actions: [
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('I Saved It'),
+                ),
+              ],
+            ),
+          );
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Shop created and syncing!'), backgroundColor: Colors.green, behavior: SnackBarBehavior.floating),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Setup failed: $e'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
+        );
+      }
+    }
+  }
+
+  Future<void> _backupNow() async {
+    final syncService = context.read<SyncService>();
+    if (!syncService.isSignedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Not connected to server'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
+      );
+      return;
+    }
+    final scaffold = ScaffoldMessenger.of(context);
+    try {
+      await syncService.pushAll();
+      await _service.createBackup();
+
+      if (mounted) {
+        setState(() {}); // trigger rebuild for timeAgo
+        scaffold.showSnackBar(
+          const SnackBar(content: Text('Backup completed'), backgroundColor: Colors.green, behavior: SnackBarBehavior.floating),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        scaffold.showSnackBar(
+          SnackBar(content: Text('Backup failed: $e'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
+        );
+      }
+    }
+  }
+
+  Future<void> _restoreData() async {
+    final syncService = context.read<SyncService>();
+    if (!syncService.isSignedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Not connected to server'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Restore Data?'),
+        content: const Text('This will replace all local data with the data from the server. Continue?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text('Restore'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final scaffold = ScaffoldMessenger.of(context);
+      try {
+        await syncService.pullAll();
+        if (mounted) {
+          scaffold.showSnackBar(
+            const SnackBar(content: Text('Data restored from server'), backgroundColor: Colors.green, behavior: SnackBarBehavior.floating),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          scaffold.showSnackBar(
+            SnackBar(content: Text('Restore failed: $e'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
+          );
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final syncService = context.read<SyncService>();
+    final isLinked = syncService.isSignedIn;
+    final lastBackup = syncService.lastBackupTime;
+    final timeAgo = lastBackup != null
+        ? _formatTimeAgo(DateTime.now().difference(lastBackup))
+        : null;
+
+    return BlocBuilder<SyncStatusCubit, SyncStatus>(
+      builder: (context, syncStatus) {
+        return _buildListGroup(
+          children: [
+            _buildListItem(
+              icon: isLinked ? Icons.cloud_done : Icons.cloud_off,
+              title: 'Server Connection',
+              subtitle: _serverUrl ?? 'Not configured',
+              trailingWidget: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: isLinked ? Colors.green[100] : Colors.grey[200],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  isLinked ? 'CONNECTED' : 'OFFLINE',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    color: isLinked ? Colors.green[800] : Colors.grey[600],
+                  ),
+                ),
+              ),
+              onTap: _showConnectDialog,
+            ),
+            _buildDivider(),
+            _buildListItem(
+              icon: Icons.link,
+              title: 'Link Devices',
+              subtitle: isLinked
+                  ? 'Generate QR code to link new devices'
+                  : 'Connect to server first',
+              trailingWidget: Icon(Icons.chevron_right, color: Colors.grey[400], size: 20),
+              onTap: () {
+                if (isLinked) {
+                  context.push('/admin/link-device');
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Connect to server first'), behavior: SnackBarBehavior.floating),
+                  );
+                }
+              },
+            ),
+              if (isLinked) ...[
+              _buildDivider(),
+              _buildListItem(
+                icon: Icons.backup,
+                title: 'Backup Now',
+                subtitle: timeAgo != null ? 'Last backup: $timeAgo' : 'No backup yet',
+                onTap: _backupNow,
+              ),
+              _buildDivider(),
+              _buildListItem(
+                icon: Icons.restore,
+                title: 'Restore My Data',
+                subtitle: 'Pull latest data from server',
+                onTap: _restoreData,
+              ),
+              _buildDivider(),
+              _buildListItem(
+                icon: Icons.security,
+                title: 'Recovery PIN',
+                subtitle: 'Use to restore if you lose all devices',
+                onTap: _showRecoveryPinDialog,
+              ),
+            ],
+            if (syncStatus == SyncStatus.syncing)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                    const SizedBox(width: 8),
+                    Text('Syncing...', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                  ],
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildListGroup({required List<Widget> children}) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[100]!),
+      ),
+      child: Column(children: children),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Divider(height: 1, thickness: 1, color: Colors.grey[50], indent: 64);
+  }
+
+  Widget _buildListItem({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    Widget? trailingWidget,
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: AppTheme.primaryColor, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                  ],
+                ],
+              ),
+            ),
+            if (trailingWidget != null) trailingWidget,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showRecoveryPinDialog() async {
+    final config = di.sl<ApiConfigService>();
+    final serverUrl = await config.getServerUrl();
+    final token = await config.getJwtToken();
+    if (serverUrl.isEmpty || token == null) return;
+
+    if (!mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.security, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Recovery PIN'),
+          ],
+        ),
+        content: const Text(
+          'Generate a new recovery PIN? The previous one will stop working.',
+          style: TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text('Generate New PIN'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final result = await _service.setRecoveryPin();
+
+      if (result == null || result.containsKey('error')) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result?['error'] as String? ?? 'Failed'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
+          );
+        }
+        return;
+      }
+
+      final newPin = result['recoveryPin'] as String?;
+      if (newPin != null && mounted) {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.security, color: Colors.orange),
+                SizedBox(width: 8),
+                Text('New Recovery PIN'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Save this PIN somewhere safe. You will need it if you lose all devices.',
+                  style: TextStyle(fontSize: 13),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.orange[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange[200]!),
+                  ),
+                  child: SelectableText(
+                    newPin,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 4,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Format: XXXX-XXXX-XXXX',
+                  style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                ),
+              ],
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('I Saved It'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to generate recovery PIN: $e'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
+        );
+      }
+    }
+  }
+
+  String _formatTimeAgo(Duration diff) {
+    if (diff.inSeconds < 60) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
   }
 }
